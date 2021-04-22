@@ -913,9 +913,23 @@ def view_attendance_employee(request):
 		return render(request,'recognition/view_attendance_employee.html', {'form' : form})
 
 @login_required
-def add_notification(request):
-	form=checkForm()
-	return render(request,'recognition/add_notification.html',{'form' : form})
+def add_notification_staff(request):
+	# if request.user.username!='admin':
+	# 	return redirect('not-authorised')
+	print(request.method)
+	form = checkForm(request.POST)
+	if request.method=='POST':
+		if form.is_valid:
+			Notfi = request.POST.copy()
+			notification = Notfi.get('notification')
+			print(notification)
+			#form.save(commit=False)
+			form.save()
+			messages.success(request,'Notification Added')
+			return render(request,'recognition/add_notification.html',{'form' : form})
+	else:
+		#messages.warning(request,'No notification...')
+		return render(request,'recognition/add_notification.html',{'form' : form})
 
 
 @login_required
