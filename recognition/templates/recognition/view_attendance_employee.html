@@ -36,9 +36,6 @@
       <a class="nav-link" href="{%url 'add_notification' %}"><b>Add Notification </b></a>
     </li>
     
-    <li class="nav-item active">
-      <a class="nav-link" href="{%url 'mesg_staff' %}"><b>Message to Staff </b></a>
-    </li>
 
 
 
@@ -69,26 +66,50 @@
 
   </div>
 </div>
-
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
 
 {% if dt %}
+
+<b>Username:</b>
+{{dt.user.username}} 
+<br> &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+<b>Designation:</b>
+{{dt.designation}}
+
+{% endif %}
+
+{% if dmt %}
 <div class="container">
   <table class="table table-striped">
       <thead>
         <tr>
       <th>Username</th>
-      <th>Designation</th>
-      <th>Date</th>
-      <th>Time</th>
+      <th>Present</th>
+      <th>Time In</th>
+      <th>Time Out</th>
+      <th>Duration</th>
         </tr>
       </thead>
      <tbody>
-        {% for stud in dt %}  
+        {% for stud in dmt %}  
           <tr>
           <td>{{stud.user.username}}</td>
-          <td>{{stud.desig.designation}}</td>
-          <td>{{stud.date}}</td>
-          <td>{{stud.time}}</td>
+          {% if stud.present %}
+          <td> P </td>
+          {% else %}
+          <td> A </td>
+          {% endif %}
+          {% if stud.time_in %}
+          <td>{{ stud.time_in }}</td>
+         {% else %}
+         <td> - </td>
+         {% endif %}
+           {% if stud.time_out %}
+          <td>{{ stud.time_out }}</td>
+         {% else %}
+         <td> - </td>
+         {% endif %}
+         <td> {{stud.hours}}</td>
           </tr>
         {% endfor %} 
      </tbody>
