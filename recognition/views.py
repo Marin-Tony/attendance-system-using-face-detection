@@ -1,6 +1,6 @@
 #from django.shortcuts import render
 from django.shortcuts import render,redirect
-from .forms import DateForm,UsernameAndDateForm, DateForm_2,TextAreaForm,checkForm
+from .forms import DateForm,UsernameAndDateForm,TextAreaForm,checkForm
 from django.contrib import messages
 from django.contrib.auth.models import User
 import cv2
@@ -26,8 +26,8 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 import datetime
 from django_pandas.io import read_frame
-from users.models import Present,Time,staff_mesg,desig,Notify
-
+from users.models import Present,Time,staff_mesg,desig,Notify,course_details,faculty_details
+from django.utils.datastructures import MultiValueDictKeyError
 import seaborn as sns
 import pandas as pd
 from django.db.models import Count
@@ -199,46 +199,6 @@ def update_attendance_in_db_out(present):
 			a=Time(user=user,date=today,time=time, out=True)
 			a.save()
 
-def check_validity_times(times_all):
-
-	if(len(times_all)>0):
-		sign=times_all.first().out
-	else:
-		sign=True
-	times_in=times_all.filter(out=False)
-	times_out=times_all.filter(out=True)
-	if(len(times_in)!=len(times_out)):
-		sign=True
-	break_hourss=0
-	if(sign==True):
-			check=False
-			break_hourss=0
-			return (check,break_hourss)
-	prev=True
-	prev_time=times_all.first().time
-
-	for obj in times_all:
-		curr=obj.out
-		if(curr==prev):
-			check=False
-			break_hourss=0
-			return (check,break_hourss)
-		if(curr==False):
-			curr_time=obj.time
-			to=curr_time
-			ti=prev_time
-			break_time=((to-ti).total_seconds())/3600
-			break_hourss+=break_time
-
-
-		else:
-			prev_time=obj.time
-
-		prev=curr
-
-	return (True,break_hourss)
-
-
 def convert_hours_to_hours_mins(hours):
 	
 	h=int(hours)
@@ -279,13 +239,7 @@ def hours_vs_date_given_employee(present_qs,time_qs,admin=True):
 		else:
 			obj.hours=0
 
-		(check,break_hourss)= check_validity_times(times_all)
-		if check:
-			obj.break_hours=break_hourss
-
-
-		else:
-			obj.break_hours=0
+		
 
 
 		
@@ -303,7 +257,7 @@ def hours_vs_date_given_employee(present_qs,time_qs,admin=True):
 	df["hours"]=df_hours
 	df["break_hours"]=df_break_hours
 
-	print(df)
+	#print(df)
 	
 	sns.barplot(data=df,x='date',y='hours')
 	plt.xticks(rotation='vertical')
@@ -318,66 +272,6 @@ def hours_vs_date_given_employee(present_qs,time_qs,admin=True):
 	return qs
 	
 
-#used
-def hours_vs_employee_given_date(present_qs,time_qs):
-	register_matplotlib_converters()
-	df_hours=[]
-	df_break_hours=[]
-	df_username=[]
-	qs=present_qs
-
-	for obj in qs:
-		user=obj.user
-		times_in=time_qs.filter(user=user).filter(out=False)
-		times_out=time_qs.filter(user=user).filter(out=True)
-		times_all=time_qs.filter(user=user)
-		obj.time_in=None
-		obj.time_out=None
-		obj.hours=0
-		obj.hours=0
-		if (len(times_in)>0):			
-			obj.time_in=times_in.first().time
-		if (len(times_out)>0):
-			obj.time_out=times_out.last().time
-		if(obj.time_in is not None and obj.time_out is not None):
-			ti=obj.time_in
-			to=obj.time_out
-			hours=((to-ti).total_seconds())/3600
-			obj.hours=hours
-		else:
-			obj.hours=0
-		(check,break_hourss)= check_validity_times(times_all)
-		if check:
-			obj.break_hours=break_hourss
-
-
-		else:
-			obj.break_hours=0
-
-		
-		df_hours.append(obj.hours)
-		df_username.append(user.username)
-		df_break_hours.append(obj.break_hours)
-		obj.hours=convert_hours_to_hours_mins(obj.hours)
-		obj.break_hours=convert_hours_to_hours_mins(obj.break_hours)
-
-	
-
-
-
-	df = read_frame(qs)	
-	df['hours']=df_hours
-	df['username']=df_username
-	df["break_hours"]=df_break_hours
-
-
-	sns.barplot(data=df,x='username',y='hours')
-	plt.xticks(rotation='vertical')
-	rcParams.update({'figure.autolayout': True})
-	plt.tight_layout()
-	plt.savefig('./recognition/static/recognition/img/attendance_graphs/hours_vs_employee/1.png')
-	plt.close()
-	return qs
 
 
 def total_number_employees():
@@ -511,17 +405,43 @@ def last_week_emp_count_vs_date():
 # Create your views here.
 def home(request):
 	#print("admin") first function to be executed
-	return render(request, 'recognition/home.html')
+	cors = course_details.objects.all()
+	fac = faculty_details.objects.all()
+	return render(request,"recognition/home.html",{'cors':cors,'fac':fac})
+
+def Four_login(request):
+	return render(request, 'recognition/Four_login.html')
 
 @login_required
 def dashboard(request):
 	if(request.user.username=='admin'):
 		print("admin")
 		return render(request, 'recognition/admin_dashboard.html')
-	else:
-		print("not admin")
+	# if request.user.username!='admin':
+	# 	return redirect('employee_dashboard')
+	# if request.method=='POST':
+	# 	return redirect('employee_dashboard')
+	# else:
+	# 	return render(request,'recognition/employee_dashboard.html')
+def teacher_dashboard(request):
+	print(request.method)
+	return render(request,'recognition/teacher_dashboard.html')
 
-		return render(request,'recognition/employee_dashboard.html')
+def parentstudent_dashboard(request):
+	print(request.method)
+	return render(request,'recognition/parentstudent_dashboard.html')
+
+@login_required
+def employee_dashboard(request):
+	#if(request.user.username!='admin'):
+	#	print("not admin")
+	return render(request,"recognition/employee_dashboard.html")
+	
+def staff_dashboard(request):
+	print("rewqqqqqqqqqqqqqqqqqqqq")
+	print(request.method)
+	return render(request,'recognition/staff_dashboard.html')
+	
 
 @login_required
 def add_photos(request):
@@ -529,18 +449,17 @@ def add_photos(request):
 		return redirect('not-authorised')
 	if request.method=='POST':
 		form=UsernameAndDateForm(request.POST)
-		if form.is_valid:
-				form.save()
 		data = request.POST.copy()
 		username=data.get('username')
 		if username_present(username):
 			create_dataset(username)
-			
-			#profile = form.save(commit=False)
-			#print(profile)
-			#profile.user = request.username
-			#print(profile.user)
-			#profile.save()
+			profile = form.save(commit=False)
+			print(profile)
+			ser = User.objects.get(username=username)
+			profile.designation=form.cleaned_data['designation']
+			print(ser,ser.username,ser.id,profile.designation)
+			profile = desig.objects.create(user_id=ser.id,designation=profile.designation)
+			profile.save()
 			
 			messages.success(request, f'Dataset Created')
 			return redirect('add-photos')
@@ -864,27 +783,25 @@ def view_attendance_date(request):
             while(l>0):
                 a = time_qs[l]
                 print(a,"????")
-                z=a.date.date
+                z=a.date
                 print(z,"third@@")
                 print(time_qs[l-1])
                 l=l-1
                 if dat==z:
-                    p=a.date_id
-                    print(z,p)
-                    iz=Time.objects.filter(date_id=p)
-                       
+                    
+                    iz=Time.objects.filter(date=z)   
                     return render(request,'recognition/view_attendance_date.html', {'form' : form,'qs' : iz })
                     continue
                 else:
                     continue
                     messages.warning(request, f'No records for selected date.')
                     return redirect('view-attendance-date')
-                #time_qs=time_qs[l-1]
-                
+        else:
+            messages.warning(request, f'No records for selected duration.')
+            return redirect('view-attendance-date')
     else:
         form=DateForm()
-        return render(request,'recognition/view_attendance_date.html', {'form' : form, 'qs' : time_qs})
-
+        return render(request,'recognition/view_attendance_date.html', {'form' : form})
 
 @login_required
 def view_attendance_employee(request):
@@ -896,32 +813,50 @@ def view_attendance_employee(request):
 			username=form.cleaned_data.get('username')
 			print(username)
 			if username_present(username):
-				u=User.objects.get(username=username)
-				print(u,username)
 				designatn=form.cleaned_data.get('designation')
-				print(designatn)
-                
-				dt = Time.objects.all()
-				print(dt)
-				return render(request,'recognition/view_attendance_employee.html', {'form' : form,'dt':dt})
+				u=User.objects.get(username=username)
+				d = desig.objects.get(user_id=u.id)
+				pnt=u.id
+				time_qs=Time.objects.filter(user=u)
+				present_qs=Present.objects.filter(user=u)
+				at = Time.objects.filter(user_id=u.id).update(designation_id=d.id)
+				dt = desig.objects.get(user_id=pnt)
+				date_from=datetime.datetime(2020,1,1)
+				date_to=datetime.datetime.now()
+				
+				if date_to < date_from:
+					messages.warning(request, f'Invalid date selection.')
+					return redirect('view-attendance-employee')
+				else:
+					time_qs=time_qs.filter(date__gte=date_from).filter(date__lte=date_to).order_by('-date')
+					present_qs=present_qs.filter(date__gte=date_from).filter(date__lte=date_to).order_by('-date')
+					
+					if (len(time_qs)>0 or len(present_qs)>0):
+						dmt=hours_vs_date_given_employee(present_qs,time_qs,admin=True)
+						
+						return render(request,'recognition/view_attendance_employee.html', {'form' : form,'dt':dt,'dmt':dmt})
+					else:
+						messages.warning(request, f'No records for selected duration.')
+						return redirect('view-attendance-employee')
 			else:
 				print("invalid username")
 				messages.warning(request, f'No such username found.')
 				return redirect('view-attendance-employee')
 	else:
-		form=UsernameAndDateForm()
-		return render(request,'recognition/view_attendance_employee.html', {'form' : form})
+			form=UsernameAndDateForm()
+			return render(request,'recognition/view_attendance_employee.html', {'form' : form})
+
 
 @login_required
-def add_notification_staff(request):
+def add_notification(request):
 	# if request.user.username!='admin':
 	# 	return redirect('not-authorised')
 	print(request.method)
 	form = checkForm(request.POST)
 	if request.method=='POST':
 		if form.is_valid:
-			Notfi = request.POST.copy()
-			notification = Notfi.get('notification')
+			Notf = request.POST.copy()
+			notification = Notf.get('notification')
 			print(notification)
 			#form.save(commit=False)
 			form.save()
@@ -931,61 +866,6 @@ def add_notification_staff(request):
 		#messages.warning(request,'No notification...')
 		return render(request,'recognition/add_notification.html',{'form' : form})
 
+	
+	#return render(request,'recognition/add_notification.html',{'form' : form})
 
-@login_required
-def view_my_attendance_employee_login(request):
-	if request.user.username=='admin':
-		return redirect('not-authorised')
-	qs=None
-	time_qs=None
-	present_qs=None
-	if request.method=='POST':
-		form=DateForm_2(request.POST)
-		if form.is_valid():
-			u=request.user
-			time_qs=Time.objects.filter(user=u)
-			present_qs=Present.objects.filter(user=u)
-			date_from=form.cleaned_data.get('date_from')
-			date_to=form.cleaned_data.get('date_to')
-			if date_to < date_from:
-					messages.warning(request, f'Invalid date selection.')
-					return redirect('view-my-attendance-employee-login')
-			else:
-					
-
-					time_qs=time_qs.filter(date__gte=date_from).filter(date__lte=date_to).order_by('-date')
-					present_qs=present_qs.filter(date__gte=date_from).filter(date__lte=date_to).order_by('-date')
-				
-					if (len(time_qs)>0 or len(present_qs)>0):
-						qs=hours_vs_date_given_employee(present_qs,time_qs,admin=False)
-						return render(request,'recognition/view_my_attendance_employee_login.html', {'form' : form, 'qs' :qs})
-					else:
-						
-						messages.warning(request, f'No records for selected duration.')
-						return redirect('view-my-attendance-employee-login')
-	else:
-		
-
-			form=DateForm_2()
-			return render(request,'recognition/view_my_attendance_employee_login.html', {'form' : form, 'qs' :qs})
-
-# Create your views here.
-#@login_required
-#def add_events(request):
-#	form=TextAreaForm()
-#	return render(request,'recognition/add_events.html',{'form':form})
-#	messages.success(request,f'Added To Events')
-
-@login_required
-def mesg_staff(request):
-    if request.user.username!='admin':
-        return redirect('not-authorised')
-    if request.method=='POST':
-        form=TextAreaForm(request.POST)
-        if form.is_valid:
-            form.save()
-            messages.success(request,f'Messaged Staff')
-            return redirect('mesg_staff')
-    else:
-        form=TextAreaForm()
-    return render(request,'recognition/mesg_staff.html', {'form' : form})
