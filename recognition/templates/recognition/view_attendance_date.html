@@ -32,11 +32,7 @@
       <li class="nav-item active">
         <a class="nav-link" href="{%url 'add_notification' %}"><b>Add Notification </b></a>
       </li>
-      
-      <li class="nav-item active">
-        <a class="nav-link" href="{%url 'mesg_staff' %}"><b>Message to Staff </b></a>
-      </li>
-       
+     
 
 
 
@@ -80,9 +76,10 @@
     {% for stud in qs %}  
        <tr>
          <td>{{stud.user.username}}</td>
-         <td>{{stud.designation}}</td>
-          <td>{{stud.date.date}}</td>
-          <td>{{stud.time_desig.time}}</td>
+         <td>{{stud.designation.designation}}</td>
+          <td>{{stud.date}}</td>
+          <td>{{stud.time}}</td>
+          
         </tr>
     {% endfor %} 
   </tbody>
@@ -97,14 +94,14 @@
     <p class="card-text" style="text-align: center;">Number of hours worked each day.</p>
   </div>
 </div>   -->
-  {% if messages %}
+ <!-- {% if messages %}
       {% for message in messages%}
       <div class="alert alert-{{message.tags}}" > {{message}}
       </div>
       {%endfor %}
 
   {%endif%}
-
+-->
 </div>
 
 
